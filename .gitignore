@@ -8,9 +8,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.env
 backend/venv/
 backend/.env
 backend/static/uploads/
+*.env.example
 
 # Frontend (Node)
 frontend/node_modules/
