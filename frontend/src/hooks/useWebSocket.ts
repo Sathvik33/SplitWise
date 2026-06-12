@@ -17,7 +17,7 @@ export const useWebSocket = (expenseId: string) => {
 
     const connect = () => {
       const token = localStorage.getItem('splitwise_token');
-      const wsUrl = import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000';
+      const wsUrl = (import.meta.env.VITE_WS_BASE_URL || 'ws://localhost:8000').replace(/\/+$/, '');
       ws.current = new WebSocket(`${wsUrl}/api/ws/expenses/${expenseId}?token=${token}`);
 
       ws.current.onopen = () => {
