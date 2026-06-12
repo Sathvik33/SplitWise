@@ -12,7 +12,6 @@ __pycache__/
 backend/venv/
 backend/.env
 backend/static/uploads/
-*.env.example
 
 # Frontend (Node)
 frontend/node_modules/
