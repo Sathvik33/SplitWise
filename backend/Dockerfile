@@ -1,12 +1,23 @@
+# Stage 1: Build dependencies
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y gcc libpq-dev && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+
+# Stage 2: Final runtime image
 FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
+# Install runtime dependencies for psycopg2/asyncpg
+RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get update && apt-get install -y libpq-dev gcc && \
-    pip install --no-cache-dir -r requirements.txt && \
-    apt-get purge -y gcc && apt-get autoremove -y
+COPY --from=builder /app/wheels /wheels
+RUN pip install --no-cache /wheels/*
 
 COPY . .
 

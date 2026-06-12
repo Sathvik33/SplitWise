@@ -79,23 +79,23 @@ Since we are building an MVP, not a full clone, the following assumptions were e
 
 | Layer | Technology | Version |
 |---|---|---|
-| Framework | Next.js (App Router) | 14.x |
-| Language | TypeScript | 5.x |
-| Database | PostgreSQL via Supabase | 15 |
-| ORM | Prisma | 5.x |
-| Auth | Supabase Auth | Latest |
-| Real-time | Supabase Realtime | Latest |
+| Frontend Framework | React + Vite | Latest |
+| Backend Framework | FastAPI | Latest |
+| Language | TypeScript (Frontend) / Python (Backend) | Latest |
+| Database | PostgreSQL | Latest |
+| ORM | SQLAlchemy + Alembic | Latest |
+| Auth | Custom JWT Authentication | Custom |
 | Styling | Tailwind CSS + shadcn/ui | Latest |
-| Deployment | Vercel (app) + Supabase (DB) | Free tier |
+| State Management | React Query + React Context | Latest |
 
-**Why Next.js 14 App Router?**
-It allows us to build both the frontend and backend in one codebase. API routes (Route Handlers) serve as the backend. This avoids setting up a separate Express/FastAPI server, dramatically reducing complexity for a 2-day build.
+**Why FastAPI?**
+FastAPI is a modern, fast (high-performance), web framework for building APIs with Python based on standard Python type hints. It is highly performant and developer-friendly.
 
-**Why Supabase?**
-Supabase provides three critical things in one service: a managed PostgreSQL database, authentication (JWT-based), and real-time WebSocket subscriptions. Using three separate services (e.g., PlanetScale + Auth0 + Socket.io) would have consumed at least half a day in setup alone.
+**Why React + Vite?**
+Vite provides an extremely fast development environment and optimized build process for React applications, outperforming older bundlers like Webpack.
 
-**Why Prisma?**
-Prisma gives us type-safe database queries and a clean schema definition language. It auto-generates TypeScript types from the schema, which catches bugs at compile time rather than runtime.
+**Why SQLAlchemy + Alembic?**
+SQLAlchemy is the Python SQL toolkit and Object Relational Mapper that gives application developers the full power and flexibility of SQL. Alembic provides a robust database migration system for SQLAlchemy.
 
 ---
 

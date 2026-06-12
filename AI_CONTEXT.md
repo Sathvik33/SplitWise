@@ -195,16 +195,14 @@ Dashboard View:
 
 | Layer | Technology | Version | Reason |
 |---|---|---|---|
-| Framework | Next.js | 14 (App Router) | Full-stack, SSR, API routes, easy Vercel deploy |
-| Language | TypeScript | 5.x | Type safety, better IDE support |
-| Database | PostgreSQL | 15 (via Supabase) | Relational ✅, free tier, hosted |
-| ORM | Prisma | 5.x | Clean schema definition, auto migrations, type-safe queries |
-| Auth | Supabase Auth | Latest | JWT, session management, email+password out of the box |
-| Real-time | Supabase Realtime | Latest | WebSocket subscriptions, built into Supabase |
+| Frontend Framework | React + Vite | Latest | Fast client-side rendering and build times |
+| Backend Framework | FastAPI | Latest | Fast, typed Python API |
+| Language | TypeScript (Frontend) / Python (Backend) | Latest | Type safety and performance |
+| Database | PostgreSQL | Latest | Relational data integrity |
+| ORM | SQLAlchemy + Alembic | Latest | Robust Python ORM and migration management |
+| Auth | JWT Authentication | Custom | Token-based auth in FastAPI |
 | Styling | Tailwind CSS + shadcn/ui | Latest | Fast UI, pre-built accessible components |
-| State Management | React Context + useState | Built-in | Simple enough for this scale; no Redux needed |
-| Deployment — Frontend | Vercel | Latest | Git-connected, auto-deploy, free tier |
-| Deployment — DB | Supabase | Latest | Managed PostgreSQL, free tier |
+| State Management | React Query + React Context | Latest | Server state management and local state |
 
 ---
 
