@@ -1,155 +1,163 @@
-<div align="center">
-  <img src="https://img.shields.io/badge/Splitwise-Clone-success?style=for-the-badge&logo=splitwise&logoColor=white" alt="Splitwise Logo" />
-  
-  # 💸 Splitwise Fullstack Application
-  
-  *A modern, real-time expense sharing application built with React, FastAPI, and PostgreSQL.*
-  
-  <p align="center">
-    <a href="#-features">Features</a> •
-    <a href="#-tech-stack">Tech Stack</a> •
-    <a href="#-architecture--workflow">Architecture</a> •
-    <a href="#-local-development">Local Setup</a> •
-    <a href="#-aws-deployment-guide">Deployment</a>
-  </p>
-</div>
+# Splitwise
+
+![Architecture](https://img.shields.io/badge/Architecture-Decoupled-blue)
+![Frontend](https://img.shields.io/badge/Frontend-React%20%7C%20Vite%20%7C%20Tailwind-61DAFB)
+![Backend](https://img.shields.io/badge/Backend-FastAPI%20%7C%20SQLAlchemy-009688)
+![Database](https://img.shields.io/badge/Database-PostgreSQL%20%7C%20Asyncpg-336791)
+![DevOps](https://img.shields.io/badge/DevOps-Docker%20%7C%20AWS%20EC2%20%7C%20RDS-FF9900)
+
+Welcome to **Splitwise**, an industry-grade, full-stack web application designed to seamlessly track shared expenses, manage group balances, and settle debts efficiently. 
+
+Whether you are sharing an apartment, splitting travel costs with friends, or just keeping track of IOUs, Splitwise removes the friction of "who owes who." It computes complex debt structures into simple, easy-to-understand balances.
+
+This repository goes beyond traditional CRUD applications by implementing a **Custom, Human-in-the-Loop CSV Data Importer** capable of parsing messy legacy financial data, detecting anomalies using pure algorithmic rules (zero ML black-boxes), and resolving conflicts dynamically.
 
 ---
 
-## ✨ Features
+## ✨ Project Overview & Core Features
 
-- **🔐 Secure Authentication:** JWT-based user login and registration system.
-- **👥 Group Management:** Create groups, add friends, and manage collective expenses easily.
-- **💵 Smart Expense Splitting:** Add expenses to groups with automatic calculation of "who owes who."
-- **💬 Real-Time Chat (WebSockets):** Live chat within groups so members can discuss expenses instantly.
-- **📊 Interactive Dashboard:** Visually appealing dashboard summarizing your total balances and recent activity.
-- **📱 Responsive UI:** A premium, glassmorphic design built with Tailwind CSS that works beautifully on both desktop and mobile.
+Splitwise is built around a robust financial ledger system. Every expense, payment, and group membership is meticulously tracked and validated to ensure 100% data integrity.
 
----
+### 👥 Group & Member Management
+- **Contextual Groups:** Users can create custom groups (e.g., "Miami Trip", "Apartment 4B") to organize expenses contextually.
+- **Dynamic Memberships:** Invite existing users to groups. The system tracks exactly when a user joins or leaves, ensuring they are only responsible for expenses incurred during their membership.
 
-## 🛠 Tech Stack
+### 💰 Expense Tracking & Ledger Engine
+- **Flexible Expense Logging:** Log new expenses, defining exactly who paid the bill and who it was split with.
+- **Mathematical Integrity:** The backend strictly enforces that the sum of all split portions equals the exact total of the expense.
+- **Record Payments (Settling Up):** Users can easily settle their debts. The engine processes the payments and updates the running ledger instantly, netting out balances across the entire group.
 
-### Frontend (Vercel)
-- **Framework:** React 18 (Vite)
-- **Language:** TypeScript
-- **Styling:** Tailwind CSS + Vanilla CSS (Glassmorphism & Micro-animations)
-- **State Management:** Zustand
-- **Networking:** Axios (HTTP) + native WebSockets
+### 📊 Real-Time Financial Dashboard
+- **Bird's-Eye View:** A centralized dashboard provides a comprehensive summary of your financial standing: your overall balance, the total amount you owe others, and the total amount others owe you.
+- **Detailed Debt Breakdowns:** See exactly who owes you money and who you need to pay back, aggregated across all your active groups.
 
-### Backend (AWS EC2)
-- **Framework:** FastAPI (Python)
-- **Database ORM:** SQLAlchemy + AsyncPG
-- **Migrations:** Alembic
-- **Real-Time:** FastAPI WebSockets
-- **Containerization:** Docker
+### 🛡️ Robust Authentication & Security System
+- Secure user registration and login using industry-standard encrypted passwords (`bcrypt`).
+- JWT (JSON Web Token) based authorization protecting all API endpoints.
+- Isolated user sessions ensuring strict data privacy and preventing cross-user data leaks.
 
-### Infrastructure (AWS)
-- **Database:** Amazon RDS (PostgreSQL 15+)
-- **Registry:** Amazon ECR (Elastic Container Registry)
-- **Compute:** Amazon EC2 (Amazon Linux 2023)
-- **Networking:** DuckDNS + Nginx Reverse Proxy + Let's Encrypt (Certbot SSL)
+### 🧠 Advanced CSV Importer Engine (Legacy Data Migration)
+The crown jewel of this system is the specialized data importer built for legacy financial data migration (`backend/app/services/import_engine.py`). Instead of silently failing or using unpredictable AI models, it uses a deterministic, rule-based approach.
 
----
-
-## 🏗 Architecture & Workflow
-
-1. **User Action:** A user submits an expense on the React frontend.
-2. **API Request:** The frontend sends a secure HTTPS request (with a JWT token) to the FastAPI backend hosted on an EC2 instance.
-3. **Nginx Proxy:** Nginx intercepts the `https://` request, decrypts the SSL certificate, and forwards it to the Docker container on port `8000`.
-4. **Processing & DB:** FastAPI processes the business logic and saves the expense to the AWS RDS PostgreSQL database via `asyncpg`.
-5. **Real-Time Update:** The backend broadcasts the new expense to all connected group members over a secure `wss://` WebSocket connection.
-6. **UI Refresh:** The frontend receives the WebSocket event and updates the dashboard balances instantly!
+- **Strict Rule-Based Parsing:** Reads raw CSV exports, sanitizes data types, and normalizes financial inputs.
+- **Comprehensive Anomaly Detection:** Automatically flags critical issues such as:
+  - Missing, unregistered, or misspelled user emails.
+  - Mathematical inconsistencies (e.g., split amounts not mathematically matching the total expense).
+  - Invalid date formats or negative payment amounts.
+  - Missing required fields (Description, Date, Amount, Paid By, Split With).
+- **Interactive Human-in-the-Loop Resolution:** Instead of discarding invalid rows, the engine suspends them and presents a clean "Anomaly Report" to the user in the UI. 
+- **Dynamic User Creation:** If the CSV contains a user who doesn't exist in the database, the system allows the importer to create that user dynamically or map them to an existing account before committing.
+- **ACID Compliant Transactions:** Database operations are atomic. If a batch resolution fails, the entire transaction rolls back to preserve absolute database integrity.
 
 ---
 
-## 💻 Local Development
+## 🏗 Architecture & Tech Stack
 
-### 1. Clone the repository
+This project follows a modern, decoupled architecture allowing for independent horizontal scaling.
+
+### Frontend (User Interface)
+* **Framework:** React 18 with TypeScript for type safety.
+* **Build Tool:** Vite for lightning-fast HMR and optimized production bundles.
+* **Styling:** Tailwind CSS to deliver a premium, responsive, utility-first UI design.
+* **Icons & Assets:** Lucide React for crisp, scalable iconography.
+* **Data Fetching:** Axios interceptors for handling JWT tokens and API routing.
+* **Hosting:** Deployed at the edge via Vercel.
+
+### Backend (Core API)
+* **Framework:** FastAPI (Python 3.11) delivering unparalleled async performance.
+* **ORM:** SQLAlchemy 2.0 utilizing the modern `AsyncSession` paradigm.
+* **Database Driver:** `asyncpg` for non-blocking database I/O.
+* **Schema Migrations:** Alembic to track and apply iterative schema changes.
+* **Security:** `passlib` (bcrypt) for hashing and `python-jose` for JWT lifecycle management.
+
+### Cloud Infrastructure & DevOps
+* **Containerization:** Docker & Docker Compose for isolated, reproducible environments.
+* **Compute:** AWS EC2 (Elastic Compute Cloud) running the containerized FastAPI backend.
+* **Registry:** AWS ECR (Elastic Container Registry) for private Docker image storage.
+* **Database:** AWS RDS (Relational Database Service) hosting the highly available PostgreSQL instance.
+
+---
+
+## 🚀 Getting Started
+
+Follow these instructions to get a copy of the project up and running on your local machine for development and testing.
+
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/splitwise-clone.git
-cd splitwise-clone
+git clone https://github.com/Sathvik33/SplitWise.git
+cd SplitWise
 ```
 
-### 2. Backend Setup
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate  # Or `venv\Scripts\activate` on Windows
-pip install -r requirements.txt
-
-# Create a local .env file
-echo "DATABASE_URL=postgresql+asyncpg://postgres:yourpassword@localhost:5432/splitwise" > .env
-echo "JWT_SECRET=local-secret-key" >> .env
-echo "ALLOWED_ORIGINS=http://localhost:5173" >> .env
-
-# Run Migrations and Start Server
-alembic upgrade head
-uvicorn app.main:app --reload --port 8000
+### 2. Configure Environment Variables
+You will need to set up your `.env` file in the root directory. Create a `.env` file and populate it with your local development credentials:
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=your_secure_password
+POSTGRES_DB=splitwise
+DATABASE_URL=postgresql+asyncpg://postgres:your_secure_password@db:5432/splitwise
+JWT_SECRET=your_super_secret_jwt_key
+JWT_ALGORITHM=HS256
+JWT_EXPIRE_HOURS=24
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost
 ```
 
-### 3. Frontend Setup
+### 3. Launch the Backend & Database (via Docker)
+Ensure you have Docker Desktop installed. From the root directory, run:
+```bash
+docker-compose up --build
+```
+* Docker will pull the PostgreSQL image, build the FastAPI backend, and bridge them on a custom network.
+* Alembic migrations should be run against the database to create the tables.
+* The API will become accessible at `http://localhost:8000`.
+
+### 4. Launch the Frontend
+Open a new terminal, navigate to the frontend folder, and install dependencies:
 ```bash
 cd frontend
 npm install
-
-# Create a local .env file
-echo "VITE_API_BASE_URL=http://localhost:8000" > .env
-echo "VITE_WS_BASE_URL=ws://localhost:8000" >> .env
-
-# Start the Vite dev server
 npm run dev
 ```
+* The application will launch at `http://localhost:5173`.
 
 ---
 
-## 🚀 AWS Deployment Guide
+## ☁️ Production AWS Deployment Guide
 
-This project is deployed using a production-ready AWS architecture.
+This project is configured for a robust deployment pipeline targeting AWS.
 
-### Step 1: Push Backend to ECR
-1. Authenticate Docker with Amazon ECR.
-2. Build the Docker image for the backend: `docker build -t splitwise .`
-3. Tag and push the image to your ECR repository.
-
-### Step 2: Provision RDS Database
-1. Create a `db.t4g.micro` PostgreSQL instance in **Amazon RDS**.
-2. Set "Public Access" to `No` for maximum security.
-3. Note the Database Endpoint and Master Password.
-
-### Step 3: EC2 Instance Setup & Nginx
-1. Launch an **Amazon Linux 2023** EC2 instance.
-2. Attach an IAM Role with `AmazonEC2ContainerRegistryReadOnly` to allow EC2 to pull from ECR.
-3. Configure the EC2 Security Group to allow inbound traffic on ports **80**, **443**, and **22**.
-4. Configure the RDS Security Group to allow inbound PostgreSQL traffic (Port 5432) from the EC2 instance.
-5. Install Docker, Nginx, and Certbot on the EC2 instance.
-
-### Step 4: Run the Backend
-Pull the image and run the database migrations:
+### Step 1: Build & Authenticate
+Build your production Docker image:
 ```bash
-sudo docker pull <YOUR-ECR-URL>/splitwise:latest
-sudo docker run --rm --env-file .env <YOUR-ECR-URL>/splitwise:latest alembic upgrade head
+docker build -t assignment-backend:latest ./backend
 ```
-Start the container:
+Authenticate your local Docker client with your AWS ECR Registry:
 ```bash
-sudo docker run -d --name splitwise-backend -p 8000:8000 --env-file .env <YOUR-ECR-URL>/splitwise:latest
+aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com
 ```
 
-### Step 5: Configure SSL (HTTPS)
-1. Point a DuckDNS domain (e.g., `yourapp.duckdns.org`) to your EC2 Public IP.
-2. Use Nginx as a reverse proxy to route port 80/443 traffic to your Docker container on port 8000.
-3. Run Certbot to generate a free SSL certificate:
+### Step 2: Tag & Push Image
 ```bash
-sudo certbot --nginx -d yourapp.duckdns.org
+docker tag assignment-backend:latest <AWS_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/splitwise:latest
+docker push <AWS_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/splitwise:latest
 ```
 
-### Step 6: Deploy Frontend to Vercel
-1. Connect your GitHub repository to Vercel.
-2. Set your production environment variables in the Vercel Dashboard:
-   - `VITE_API_BASE_URL=https://yourapp.duckdns.org`
-   - `VITE_WS_BASE_URL=wss://yourapp.duckdns.org`
-3. Deploy! 🎉
+### Step 3: EC2 Deployment & RDS Connection
+1. SSH into your target AWS EC2 instance.
+2. Create a local `.env` file. Crucially, update the `DATABASE_URL` to point to your **AWS RDS Endpoint** and append `?ssl=require` to enforce secure transit:
+   ```env
+   DATABASE_URL=postgresql+asyncpg://postgres:PASSWORD@your-rds-endpoint.amazonaws.com:5432/postgres?ssl=require
+   ```
+3. Pull the Docker image from ECR and run it detached:
+   ```bash
+   sudo docker run -d \
+     --name splitwise \
+     --env-file .env \
+     -p 8000:8000 \
+     <AWS_ACCOUNT_ID>.dkr.ecr.ap-south-1.amazonaws.com/splitwise:latest
+   ```
+4. Finally, synchronize the cloud database schema using Alembic:
+   ```bash
+   sudo docker exec splitwise alembic upgrade head
+   ```
 
----
-<div align="center">
-  <i>Built with ❤️ for seamless expense sharing.</i>
-</div>
+Your backend is now running flawlessly in the cloud!
