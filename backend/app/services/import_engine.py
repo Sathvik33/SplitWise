@@ -11,14 +11,22 @@ class AnomalyDetector:
         self.seen_expenses = {}  # fingerprint -> {row_index, amount, paid_by}
 
     def parse_date(self, date_str: str) -> datetime:
-        """Handle inconsistent date formats (DD/MM/YYYY vs MM-DD-YYYY)"""
+        """Handle inconsistent date formats (DD/MM/YYYY vs DD-MM-YYYY vs MM-DD-YYYY vs Mon-DD)"""
         try:
             return datetime.strptime(date_str, "%d/%m/%Y")
         except ValueError:
             try:
-                return datetime.strptime(date_str, "%m-%d-%Y")
+                return datetime.strptime(date_str, "%d-%m-%Y")
             except ValueError:
-                return None
+                try:
+                    return datetime.strptime(date_str, "%m-%d-%Y")
+                except ValueError:
+                    try:
+                        # Handle formats like "Mar-14", default to 2026
+                        d = datetime.strptime(date_str.strip(), "%b-%d")
+                        return d.replace(year=2026)
+                    except ValueError:
+                        return None
 
     def analyze_csv(self, csv_content: str) -> Dict[str, Any]:
         reader = csv.DictReader(StringIO(csv_content))
@@ -29,21 +37,40 @@ class AnomalyDetector:
             "anomalies": []
         }
 
-        for i, row in enumerate(reader):
+        for i, raw_row in enumerate(reader):
+            # Normalize row keys to Title Case for internal consistency
+            row = {}
+            for k, v in raw_row.items():
+                if k:
+                    k_lower = k.strip().lower()
+                    if k_lower == "date": row["Date"] = v
+                    elif k_lower == "description": row["Description"] = v
+                    elif k_lower == "amount": row["Amount"] = v
+                    elif k_lower == "currency": row["Currency"] = v
+                    elif k_lower == "paid_by" or k_lower == "paid by": row["Paid By"] = v
+                    elif k_lower == "split_with" or k_lower == "split with": row["Split With"] = v
+                    else: row[k] = v # Keep other keys as is
+
+            date_val = row.get("Date", "")
+            desc_val = row.get("Description", "")
+            amount_val = row.get("Amount")
+            paid_by_val = row.get("Paid By", "")
+            split_with_val = row.get("Split With", "")
+
             # Skip comment lines (lines starting with #)
-            if row.get("Date", "").startswith("#"):
+            if date_val.startswith("#"):
                 continue
 
             report["total_rows"] += 1
             row_index = i + 2  # +1 for 0-index, +1 for header
 
             # --- Anomaly 5: Missing Amount ---
-            if not row.get("Amount") or str(row.get("Amount")).strip() == "":
+            if amount_val is None or str(amount_val).strip() == "":
                 report["anomalies"].append({
                     "row_index": row_index,
                     "original_data": row,
                     "anomaly_type": "MISSING_AMOUNT",
-                    "description": f"Row {row_index}: The amount field is empty for '{row.get('Description', 'Unknown')}'.",
+                    "description": f"Row {row_index}: The amount field is empty for '{desc_val or 'Unknown'}'.",
                     "proposed_action": "SKIP",
                     "options": ["SKIP", "REQUIRE_MANUAL_INPUT"]
                 })
@@ -51,13 +78,14 @@ class AnomalyDetector:
 
             # --- Anomaly 11: Text in Amount column ---
             try:
-                amount = float(row["Amount"])
+                amount_str = str(amount_val).replace(',', '').strip()
+                amount = float(amount_str)
             except ValueError:
                 report["anomalies"].append({
                     "row_index": row_index,
                     "original_data": row,
                     "anomaly_type": "INVALID_AMOUNT_FORMAT",
-                    "description": f"Row {row_index}: The amount '{row['Amount']}' is not a valid number.",
+                    "description": f"Row {row_index}: The amount '{amount_val}' is not a valid number.",
                     "proposed_action": "REQUIRE_MANUAL_INPUT",
                     "options": ["SKIP", "REQUIRE_MANUAL_INPUT"]
                 })
@@ -69,9 +97,9 @@ class AnomalyDetector:
                     "row_index": row_index,
                     "original_data": row,
                     "anomaly_type": "ZERO_AMOUNT",
-                    "description": f"Row {row_index}: '{row.get('Description', '')}' has a zero amount.",
-                    "proposed_action": "SKIP",
-                    "options": ["SKIP", "IMPORT_ANYWAY"]
+                    "description": f"Row {row_index}: '{desc_val}' has a zero amount.",
+                    "proposed_action": "REQUIRE_MANUAL_INPUT",
+                    "options": ["SKIP", "REQUIRE_MANUAL_INPUT", "IMPORT_ANYWAY"]
                 })
                 continue
 
@@ -81,33 +109,33 @@ class AnomalyDetector:
                     "row_index": row_index,
                     "original_data": row,
                     "anomaly_type": "NEGATIVE_AMOUNT",
-                    "description": f"Row {row_index}: '{row.get('Description', '')}' has a negative amount ({amount}). Is this a refund or an error?",
+                    "description": f"Row {row_index}: '{desc_val}' has a negative amount ({amount}). Is this a refund or an error?",
                     "proposed_action": "CONVERT_TO_REFUND",
                     "options": ["CONVERT_TO_REFUND", "MAKE_POSITIVE", "SKIP"]
                 })
                 continue
 
             # --- Anomaly 4: Inconsistent Date Format ---
-            parsed_date = self.parse_date(row.get("Date", ""))
+            parsed_date = self.parse_date(date_val)
             if not parsed_date:
                 report["anomalies"].append({
                     "row_index": row_index,
                     "original_data": row,
                     "anomaly_type": "INVALID_DATE",
-                    "description": f"Row {row_index}: The date '{row.get('Date')}' could not be parsed.",
+                    "description": f"Row {row_index}: The date '{date_val}' could not be parsed.",
                     "proposed_action": "SKIP",
                     "options": ["SKIP", "REQUIRE_MANUAL_INPUT"]
                 })
                 continue
 
             # --- Anomaly 1 & 3: Duplicates vs Conflicting Entries ---
-            expense_fingerprint = f"{row['Date']}_{row['Description']}_{row['Split With']}"
+            expense_fingerprint = f"{date_val}_{desc_val}_{split_with_val}"
             if expense_fingerprint in self.seen_expenses:
                 prev = self.seen_expenses[expense_fingerprint]
                 prev_amount = prev["amount"]
                 prev_payer = prev["paid_by"]
 
-                if prev_amount == amount and prev_payer == row.get("Paid By", ""):
+                if prev_amount == amount and prev_payer == paid_by_val:
                     # Anomaly 1: Exact duplicate
                     report["anomalies"].append({
                         "row_index": row_index,
@@ -123,7 +151,7 @@ class AnomalyDetector:
                         "row_index": row_index,
                         "original_data": row,
                         "anomaly_type": "CONFLICTING_ENTRY",
-                        "description": f"Row {row_index}: Conflicts with Row {prev['row_index']} — same event but amount/payer differs ({prev_payer}: ₹{prev_amount} vs {row.get('Paid By')}: ₹{amount}). Which row is correct?",
+                        "description": f"Row {row_index}: Conflicts with Row {prev['row_index']} — same event but amount/payer differs ({prev_payer}: ₹{prev_amount} vs {paid_by_val}: ₹{amount}). Which row is correct?",
                         "proposed_action": "SKIP",
                         "options": ["SKIP", "IMPORT_THIS_ROW", "IMPORT_AS_DUPLICATE"]
                     })
@@ -131,29 +159,30 @@ class AnomalyDetector:
             self.seen_expenses[expense_fingerprint] = {
                 "row_index": row_index,
                 "amount": amount,
-                "paid_by": row.get("Paid By", "")
+                "paid_by": paid_by_val
             }
 
             # --- Anomaly 8: Settlement logged as expense ---
             # (Check BEFORE currency/timeline so settlements don't get double-flagged)
-            if "paid" in row.get("Description", "").lower() and "back" in row.get("Description", "").lower():
+            if "paid" in desc_val.lower() and "back" in desc_val.lower():
                 report["anomalies"].append({
                     "row_index": row_index,
                     "original_data": row,
                     "anomaly_type": "SETTLEMENT_AS_EXPENSE",
-                    "description": f"Row {row_index}: '{row.get('Description')}' looks like a debt settlement, not a shared expense.",
+                    "description": f"Row {row_index}: '{desc_val}' looks like a debt settlement, not a shared expense.",
                     "proposed_action": "CONVERT_TO_SETTLEMENT",
                     "options": ["CONVERT_TO_SETTLEMENT", "IMPORT_AS_EXPENSE", "SKIP"]
                 })
                 continue
 
             # --- Anomaly 6: USD currency mismatch (Priya's complaint) ---
-            if "USD" in row.get("Description", "").upper():
+            currency_val = row.get("Currency", "")
+            if "USD" in desc_val.upper() or "USD" in currency_val.upper():
                 report["anomalies"].append({
                     "row_index": row_index,
                     "original_data": row,
                     "anomaly_type": "CURRENCY_MISMATCH",
-                    "description": f"Row {row_index}: '{row.get('Description')}' appears to be in USD but is logged as INR. Apply exchange rate (1 USD = ₹{EXCHANGE_RATE_USD_TO_INR})?",
+                    "description": f"Row {row_index}: '{desc_val}' appears to be in USD but is logged as INR. Apply exchange rate (1 USD = ₹{EXCHANGE_RATE_USD_TO_INR})?",
                     "proposed_action": "APPLY_EXCHANGE_RATE",
                     "options": ["APPLY_EXCHANGE_RATE", "IMPORT_AS_INR", "SKIP"]
                 })

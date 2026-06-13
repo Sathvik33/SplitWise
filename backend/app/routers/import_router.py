@@ -82,10 +82,14 @@ async def execute_import(
                     "note": "Manual input required but no value provided — skipped"
                 })
                 continue
-            # Apply the manual value to the Amount field
+            
             row = dict(row)
-            row["Amount"] = manual_val
-            rows_to_import.append({"row": row, "action": "IMPORTED_WITH_MANUAL_VALUE", "note": f"Manual value applied: {manual_val}"})
+            if anomaly_type == "INVALID_DATE":
+                row["Date"] = manual_val
+                rows_to_import.append({"row": row, "action": "IMPORTED_WITH_MANUAL_DATE", "note": f"Manual date applied: {manual_val}"})
+            else:
+                row["Amount"] = manual_val
+                rows_to_import.append({"row": row, "action": "IMPORTED_WITH_MANUAL_AMOUNT", "note": f"Manual amount applied: {manual_val}"})
             continue
 
         if resolution == "APPLY_EXCHANGE_RATE":
@@ -193,8 +197,9 @@ async def execute_import(
     db.add(group)
     await db.flush()
 
-    for user_id in name_to_user_id.values():
-        db.add(GroupMember(group_id=group.id, user_id=user_id))
+    unique_user_ids = {str(uid) for uid in name_to_user_id.values()}
+    for user_id_str in unique_user_ids:
+        db.add(GroupMember(group_id=group.id, user_id=user_id_str))
     await db.flush()
 
     # 6. Process each row and insert data
@@ -210,9 +215,16 @@ async def execute_import(
                 date_val = dt.datetime.strptime(date_str, "%d/%m/%Y")
             except ValueError:
                 try:
-                    date_val = dt.datetime.strptime(date_str, "%m-%d-%Y")
-                except Exception:
-                    date_val = dt.datetime.now()
+                    date_val = dt.datetime.strptime(date_str, "%d-%m-%Y")
+                except ValueError:
+                    try:
+                        date_val = dt.datetime.strptime(date_str, "%m-%d-%Y")
+                    except ValueError:
+                        try:
+                            d = dt.datetime.strptime(date_str.strip(), "%b-%d")
+                            date_val = d.replace(year=2026)
+                        except Exception:
+                            date_val = dt.datetime.now()
 
             # Parse amount
             amount_str = str(row.get("Amount", "0")).replace(',', '').strip()
