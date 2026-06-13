@@ -3,6 +3,7 @@
 .vscode/
 .idea/
 *.log
+.agents/
 
 # Backend (Python)
 __pycache__/
