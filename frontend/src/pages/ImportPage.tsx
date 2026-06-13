@@ -128,6 +128,29 @@ export default function ImportPage() {
 
   const needsManualInput = (rowIndex: number) => resolvedAnomalies[rowIndex] === 'REQUIRE_MANUAL_INPUT';
 
+  const downloadCSV = () => {
+    const headers = ["Description", "Anomaly", "Action Taken", "Details"];
+    const csvContent = [
+      headers.join(","),
+      ...importReport.map(entry => {
+        const description = `"${(entry.description || '').replace(/"/g, '""')}"`;
+        const anomaly = `"${(entry.anomaly_type || 'None').replace(/"/g, '""')}"`;
+        const resolution = `"${(entry.resolution || '').replace(/"/g, '""')}"`;
+        const note = `"${(entry.note || '').replace(/"/g, '""')}"`;
+        return [description, anomaly, resolution, note].join(",");
+      })
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "import_report.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // Upload Phase
   if (phase === 'upload') {
     return (
@@ -307,7 +330,10 @@ export default function ImportPage() {
           </table>
         </div>
 
-        <div className="flex justify-end mt-8">
+        <div className="flex justify-end gap-4 mt-8">
+          <button onClick={downloadCSV} className="rounded-xl bg-green-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-green-700">
+            Download CSV Report
+          </button>
           <button onClick={() => navigate('/dashboard')} className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
             Go to Dashboard
           </button>
