@@ -27,3 +27,7 @@ frontend/npm-debug.log*
 frontend/yarn-debug.log*
 frontend/yarn-error.log*
 frontend/.eslintcache
+
+BUILD_PLAN.md
+AI_CONTEXT.md
+skills-lock.json

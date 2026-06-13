@@ -23,6 +23,11 @@ export default function DashboardPage() {
     enabled: isBreakdownOpen,
   });
 
+  const settlementsQuery = useQuery({
+    queryKey: ['dashboard', 'settlements'],
+    queryFn: dashboardApi.getSettlements,
+  });
+
   const handleCreateGroup = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -104,6 +109,37 @@ export default function DashboardPage() {
           </p>
         </button>
       </div>
+
+      {settlementsQuery.data && settlementsQuery.data.length > 0 && (
+        <div className="mb-10">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-gray-900">Settle Up Summary</h3>
+            <p className="text-sm text-gray-500">Who pays whom, how much, done.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {settlementsQuery.data.map((settlement: any, idx: number) => (
+              <div key={idx} className="flex items-center gap-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                  settlement.direction === 'owes_you' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+                }`}>
+                  {settlement.direction === 'owes_you' ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                    </svg>
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{settlement.summary}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Groups List */}

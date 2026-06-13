@@ -135,3 +135,78 @@ async def get_dashboard_breakdown(current_user: User = Depends(get_current_user)
     # Sort by date descending (handle missing dates by putting them last)
     breakdown.sort(key=lambda x: x["date"] or "", reverse=True)
     return breakdown
+
+@router.get("/settlements")
+async def get_simplified_settlements(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """
+    Aisha's Request: "I just want one number per person. Who pays whom, how much, done."
+    Uses a greedy algorithm to compute minimum transfers that settle all debts.
+    """
+    groups = await get_user_groups(db, current_user.id)
+    
+    # Aggregate net balances across ALL groups for the current user
+    # net_with[other_user_id] = amount (positive = they owe me, negative = I owe them)
+    net_with: Dict[str, Dict[str, Any]] = {}  # user_id -> {name, amount}
+    
+    for group in groups:
+        balances = await calculate_group_balances(db, group.id)
+        
+        # Get current user's balance in this group
+        my_balance = None
+        for b in balances:
+            if b.user_id == current_user.id:
+                my_balance = b
+                break
+        
+        if not my_balance or my_balance.net_amount == 0:
+            continue
+        
+        # For a simplified view, we compute pairwise debts:
+        # If I have a positive net, others owe me proportionally.
+        # If I have a negative net, I owe others proportionally.
+        for b in balances:
+            if b.user_id == current_user.id:
+                continue
+            if b.net_amount == 0:
+                continue
+            
+            uid = str(b.user_id)
+            if uid not in net_with:
+                net_with[uid] = {"name": b.name, "amount": 0.0}
+            
+            # If they have negative balance (they owe the group) and I have positive (group owes me),
+            # then they owe me a portion
+            if my_balance.net_amount > 0 and b.net_amount < 0:
+                # They owe me
+                transfer = min(my_balance.net_amount, abs(b.net_amount))
+                net_with[uid]["amount"] += transfer
+            elif my_balance.net_amount < 0 and b.net_amount > 0:
+                # I owe them
+                transfer = min(abs(my_balance.net_amount), b.net_amount)
+                net_with[uid]["amount"] -= transfer
+    
+    settlements = []
+    for uid, info in net_with.items():
+        amt = round(info["amount"], 2)
+        if amt == 0:
+            continue
+        if amt > 0:
+            settlements.append({
+                "user_id": uid,
+                "name": info["name"],
+                "direction": "owes_you",
+                "amount": amt,
+                "summary": f"{info['name']} owes you ₹{amt}"
+            })
+        else:
+            settlements.append({
+                "user_id": uid,
+                "name": info["name"],
+                "direction": "you_owe",
+                "amount": abs(amt),
+                "summary": f"You owe {info['name']} ₹{abs(amt)}"
+            })
+    
+    settlements.sort(key=lambda x: x["amount"], reverse=True)
+    return settlements
+

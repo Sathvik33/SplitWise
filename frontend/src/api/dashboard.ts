@@ -10,4 +10,9 @@ export const dashboardApi = {
     const res = await api.get<any[]>('/api/dashboard/breakdown');
     return res.data;
   },
+  getSettlements: async () => {
+    const res = await api.get<any[]>('/api/dashboard/settlements');
+    return res.data;
+  },
 };
+

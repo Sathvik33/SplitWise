@@ -120,7 +120,7 @@ export default function GroupPage() {
 
         <div className="space-y-6">
           <BalanceSummary balances={balancesQuery.data || []} />
-          <MemberList members={groupQuery.data.members} />
+          <MemberList members={groupQuery.data.members} groupId={id!} currentUserId={user?.id} />
         </div>
       </div>
 

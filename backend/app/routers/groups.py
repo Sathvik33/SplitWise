@@ -9,7 +9,7 @@ from app.models.user import User
 from app.dependencies.auth import get_current_user
 from app.schemas.group import GroupCreate, GroupUpdate, GroupResponse, GroupMemberAdd, GroupMemberResponse
 from app.schemas.balance import BalanceEntry
-from app.services.group_service import create_group, update_group, delete_group, get_user_groups, get_group_by_id, add_member
+from app.services.group_service import create_group, update_group, delete_group, get_user_groups, get_group_by_id, add_member, remove_member
 from app.services.balance_service import calculate_group_balances
 
 router = APIRouter(prefix="/api/groups", tags=["groups"])
@@ -59,3 +59,9 @@ async def get_group_balances(id: UUID, current_user: User = Depends(get_current_
     # Check if user is in group
     await get_group_by_id(db, id, current_user.id)
     return await calculate_group_balances(db, id)
+
+@router.delete("/{id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_group_member(id: UUID, user_id: UUID, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Remove a member from the group by setting their left_at timestamp."""
+    await remove_member(db, id, user_id, current_user.id)
+

@@ -91,3 +91,23 @@ async def add_member(db: AsyncSession, group_id: UUID, email: str, current_user_
         .options(selectinload(GroupMember.user))
     )
     return res.scalars().first()
+
+async def remove_member(db: AsyncSession, group_id: UUID, user_id: UUID, current_user_id: UUID):
+    """Remove a member from the group by setting left_at. Preserves history."""
+    from datetime import datetime, timezone
+    
+    # Check if current user is member
+    member_res = await db.execute(select(GroupMember).filter_by(group_id=group_id, user_id=current_user_id))
+    if not member_res.scalars().first():
+        raise HTTPException(status_code=403, detail="Not a member of this group")
+    
+    # Find the target member
+    target_res = await db.execute(select(GroupMember).filter_by(group_id=group_id, user_id=user_id))
+    target = target_res.scalars().first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Member not found in group")
+    
+    # Set left_at instead of deleting to preserve timeline history
+    target.left_at = datetime.now(timezone.utc)
+    await db.commit()
+

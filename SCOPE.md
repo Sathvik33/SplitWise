@@ -5,12 +5,13 @@
 Our application uses a strictly relational PostgreSQL database managed with SQLAlchemy.
 
 ### Core Tables
-1. **users**: `id`, `email`, `name`, `hashed_password`
-2. **groups**: `id`, `name`, `created_at`, `image_url`
-3. **group_members**: `id`, `group_id`, `user_id`, `joined_at` (for timeline constraints), `left_at` (for members who moved out)
-4. **expenses**: `id`, `group_id`, `title`, `amount`, `currency` (supports USD/INR), `original_amount`, `is_settlement`, `paid_by`, `split_type`, `created_at`
-5. **expense_splits**: `id`, `expense_id`, `user_id`, `amount_owed`
-6. **payments**: `id`, `group_id`, `paid_by`, `paid_to`, `amount`, `date`
+1. **users**: `id` (PK), `email`, `name`, `hashed_password`
+2. **groups**: `id` (PK), `name`, `created_at`, `image_url`, `created_by` (FK -> users.id)
+3. **group_members**: `id` (PK), `group_id` (FK -> groups.id), `user_id` (FK -> users.id), `joined_at` (for timeline constraints), `left_at` (for members who moved out)
+4. **expenses**: `id` (PK), `group_id` (FK -> groups.id), `title`, `amount`, `currency` (supports USD/INR), `original_amount`, `is_settlement`, `paid_by` (FK -> users.id), `split_type`, `created_by` (FK -> users.id), `created_at`
+5. **expense_splits**: `id` (PK), `expense_id` (FK -> expenses.id), `user_id` (FK -> users.id), `amount_owed`
+6. **payments**: `id` (PK), `group_id` (FK -> groups.id), `paid_by` (FK -> users.id), `paid_to` (FK -> users.id), `amount`, `date`
+
 
 ## Anomaly Log (`expenses_export.csv`)
 
