@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, text, DateTime, ForeignKey, Numeric, UniqueConstraint, CheckConstraint
+from sqlalchemy import Column, String, text, DateTime, ForeignKey, Numeric, UniqueConstraint, CheckConstraint, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -10,13 +10,15 @@ class Expense(Base):
     group_id = Column(UUID(as_uuid=True), ForeignKey("groups.id", ondelete="CASCADE"), nullable=False)
     title = Column(String, nullable=False)
     amount = Column(Numeric(12, 2), nullable=False)
+    currency = Column(String, server_default='INR', nullable=False)
+    original_amount = Column(Numeric(12, 2), nullable=True)
+    is_settlement = Column(Boolean, server_default='false', nullable=False)
     paid_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     split_type = Column(String, nullable=False)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=text("NOW()"))
 
     __table_args__ = (
-        CheckConstraint('amount > 0', name='chk_expense_amount_positive'),
         CheckConstraint("split_type IN ('equal','unequal','percentage','share')", name='chk_expense_split_type'),
     )
 
@@ -37,7 +39,6 @@ class ExpenseSplit(Base):
     amount_owed = Column(Numeric(12, 2), nullable=False)
 
     __table_args__ = (
-        CheckConstraint('amount_owed >= 0', name='chk_expense_split_amount_positive'),
         UniqueConstraint('expense_id', 'user_id', name='uq_expense_user'),
     )
 

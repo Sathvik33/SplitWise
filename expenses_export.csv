@@ -1,0 +1,28 @@
+Date,Description,Paid By,Split With,Amount
+01/02/2026,Rent,Aisha,Aisha;Rohan;Priya;Meera,40000
+10/02/2026,Groceries,Rohan,Aisha;Rohan;Priya;Meera,2500
+15/02/2026,Dinner at Raj's,Priya,Aisha;Rohan;Priya,1200
+# Anomaly 1: Duplicate Entry (Exact match)
+15/02/2026,Dinner at Raj's,Priya,Aisha;Rohan;Priya,1200
+# Anomaly 2: Negative Amount (Refund or Error?)
+20/02/2026,Wifi Refund,Aisha,Aisha;Rohan;Priya;Meera,-500
+# Anomaly 3: Conflicting overlapping entry (Same dinner, different amount logged by someone else)
+15/02/2026,Dinner at Raj's,Rohan,Aisha;Rohan;Priya,1500
+# Anomaly 4: Inconsistent Date Format (MM-DD-YYYY instead of DD/MM/YYYY)
+03-05-2026,Cleaning Supplies,Meera,Aisha;Rohan;Priya;Meera,450
+# Anomaly 5: Missing Amount
+10/03/2026,Movie Tickets,Rohan,Aisha;Rohan,
+# Anomaly 6: Trip expenses in USD pretending to be INR (Priya's complaint)
+15/03/2026,Trip Hotel (USD),Priya,Aisha;Rohan;Priya;Meera;Dev,150
+# Anomaly 7: Dev joined for trip but isn't a regular flatmate
+16/03/2026,Trip Dinner,Dev,Aisha;Rohan;Priya;Meera;Dev,3000
+# Anomaly 8: Settlement logged as an expense
+20/03/2026,Rohan paid Aisha back,Rohan,Aisha,2000
+# Anomaly 9: Meera moved out at the end of March, but is included in an April expense
+10/04/2026,April Groceries,Aisha,Aisha;Rohan;Priya;Meera,3000
+# Anomaly 10: Sam moved in mid-April, but is charged for March electricity (Sam's complaint)
+15/03/2026,March Electricity,Aisha,Aisha;Rohan;Priya;Sam,2000
+# Anomaly 11: Text in Amount column
+20/04/2026,New Microwave,Rohan,Aisha;Rohan;Priya;Sam,Five Thousand
+# Anomaly 12: Zero amount logged
+25/04/2026,Free couch pickup,Sam,Aisha;Rohan;Priya;Sam,0

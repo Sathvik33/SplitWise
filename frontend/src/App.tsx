@@ -5,6 +5,7 @@ import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import GroupPage from './pages/GroupPage';
 import ExpensePage from './pages/ExpensePage';
+import ImportPage from './pages/ImportPage';
 import Navbar from './components/Navbar';
 
 const ProtectedRoute = () => {
@@ -34,6 +35,7 @@ export default function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/groups/:id" element={<GroupPage />} />
         <Route path="/groups/:id/expenses/:expenseId" element={<ExpensePage />} />
+        <Route path="/import" element={<ImportPage />} />
       </Route>
     </Routes>
   );
